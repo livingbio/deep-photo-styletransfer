@@ -1,0 +1,36 @@
+FROM nvidia/cuda:8.0-cudnn6-devel
+LABEL maintainer "davidchen@gliacloud.com"
+
+RUN apt-get update -y
+RUN apt-get install git -y
+RUN apt-get install zsh curl wget -y
+RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
+
+RUN apt-get install python-pip python-dev libffi-dev libssl-dev libxml2-dev libxslt1-dev zlib1g-dev libjpeg-dev libpng-dev libmysqlclient-dev jpegoptim optipng -y
+
+RUN apt-get purge -y python-pip
+RUN wget -N https://bootstrap.pypa.io/get-pip.py
+RUN apt-get install python-pip
+RUN pip install pdbpp ipython
+RUN pip install virtualenv
+
+RUN apt-get install octave -y
+RUN apt-get install octave-control octave-image octave-io octave-optim octave-signal octave-statistics -y
+
+RUN git clone https://github.com/torch/distro.git ~/torch --recursive
+RUN apt-get install sudo -y
+RUN cd /root/torch && bash install-deps && ./install.sh -b
+RUN apt-get install libmatio2 libprotobuf-dev protobuf-compiler -y
+RUN /root/torch/install/bin/luarocks install matio
+RUN /root/torch/install/bin/luarocks install loadcaffe
+RUN /root/torch/install/bin/luarocks install torch
+RUN /root/torch/install/bin/luarocks install cutorch
+
+RUN cd /root && git clone -b docker https://github.com/livingbio/deep-photo-styletransfer.git
+RUN cd /root/deep-photo-styletransfer && sh models/download_models.sh && make clean && make
+RUN cd /root/deep-photo-styletransfer && git pull
+RUN cd /root/deep-photo-styletransfer && git pull
+RUN cd /root/deep-photo-styletransfer/gen_laplacian && octave gen_laplacian.m --no-gui
+RUN cd /root/deep-photo-styletransfer && python gen_all.py
+
+
